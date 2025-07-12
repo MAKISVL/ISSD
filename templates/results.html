@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Результаты сбора данных</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { padding: 40px; background-color: #e9ecef; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .container { max-width: 95%; background-color: #ffffff; padding: 30px; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        h1 { color: #0056b3; font-weight: 600; margin-bottom: 25px; }
+        h3 { color: #007bff; margin-top: 40px; margin-bottom: 20px; font-weight: 500;}
+        p strong { color: #343a40; }
+        .table-responsive { max-height: 70vh; overflow: auto; border: 1px solid #dee2e6; border-radius: 5px; background-color: #f8f9fa; }
+        .table-responsive::-webkit-scrollbar { width: 8px; }
+        .table-responsive::-webkit-scrollbar-thumb { background-color: #ced4da; border-radius: 4px; }
+        .table-responsive::-webkit-scrollbar-track { background-color: #f1f3f5; }
+        .btn-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px; /* Увеличил отступ между кнопками */
+            margin-bottom: 30px;
+        }
+        .btn-group-left, .btn-group-right {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap; /* Для лучшей адаптивности */
+        }
+        .btn { padding: 10px 20px; border-radius: 5px; font-weight: 500; }
+        .btn-secondary { background-color: #6c757d; border-color: #6c757d; transition: background-color 0.2s, border-color 0.2s; }
+        .btn-secondary:hover { background-color: #5a6268; border-color: #5a6268; }
+        .btn-success { background-color: #28a745; border-color: #28a745; transition: background-color 0.2s, border-color 0.2s; }
+        .btn-success:hover { background-color: #218838; border-color: #218838; }
+        .btn-info { background-color: #17a2b8; border-color: #17a2b8; transition: background-color 0.2s, border-color 0.2s; }
+        .btn-info:hover { background-color: #117a8b; border-color: #117a8b; }
+        .btn-warning { background-color: #ffc107; border-color: #ffc107; color: #343a40; transition: background-color 0.2s, border-color 0.2s; }
+        .btn-warning:hover { background-color: #e0a800; border-color: #e0a800; }
+        .alert { margin-top: 20px; border-radius: 5px; }
+        .table img {
+            max-width: 100px; /* Уменьшил размер для лучшего вида в таблице */
+            max-height: 100px;
+            object-fit: contain;
+            display: block;
+            margin: auto;
+            border: 1px solid #eee;
+            border-radius: 3px;
+        }
+        .footer-author {
+            margin-top: 40px;
+            font-size: 0.9em;
+            color: #6c757d;
+            text-align: center;
+        }
+        /* Стили для маленькой подсказки */
+        .download-hint {
+            font-size: 0.8em;
+            color: #6c757d;
+            max-width: 180px; /* Ограничил ширину для более компактного вида */
+            margin-left: 10px; /* Отступ от кнопки */
+        }
+        .btn-group-right .form-text {
+            display: block; /* Сделаем подсказку отдельным блоком */
+            margin-top: 5px;
+        }
+        .btn-with-hint {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start; /* Выравнивание элементов внутри по левому краю */
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="text-center">Результаты сбора данных</h1>
+        <p class="text-center">Данные собраны с: <a href="{{ url }}" target="_blank"><strong>{{ url }}</strong></a></p>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}" role="alert">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <div class="btn-container">
+            <div class="btn-group-left">
+                <a href="{{ url_for('index') }}" class="btn btn-secondary">← Новый сбор</a>
+                <a href="{{ url_for('manual_parse', url=url) }}" class="btn btn-secondary">Ручной сбор по селекторам</a>
+            </div>
+
+            <div class="btn-group-right">
+                {% if html_table %}
+                    <div class="btn-with-hint">
+                        <a href="{{ url_for('download_csv') }}" class="btn btn-success">Скачать данные (CSV)</a>
+                        <small class="form-text download-hint">
+                            Если символы некорректны, откройте CSV в Excel через "Данные" -> "Из текста/CSV" и выберите кодировку UTF-8.
+                        </small>
+                    </div>
+                {% endif %}
+                {% if has_images %}
+                    <a href="{{ url_for('download_images_zip') }}" class="btn btn-info">Скачать картинки (ZIP)</a>
+                {% endif %}
+                {% if show_deep_parse_button %}
+                    <a href="{{ url_for('deep_parse_images') }}" class="btn btn-warning">Глубокий сбор картинок</a>
+                {% endif %}
+            </div>
+        </div>
+
+        {% if html_table %}
+            <h3>Сводные данные</h3>
+            <div class="table-responsive">
+                {{ html_table | safe }}
+            </div>
+        {% endif %}
+
+        {% if tables_html %}
+            <h3>Найденные на странице таблицы ({{ tables_html|length }})</h3>
+            {% for table in tables_html %}
+                <div class="table-responsive my-4">
+                    {{ table | safe }}
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        {% if not html_table and not tables_html %}
+            <div class="alert alert-warning mt-4">
+                Не удалось собрать данные по выбранным критериям. Попробуйте выбрать другие опции или проверьте URL.
+            </div>
+        {% endif %}
+
+        <div class="footer-author">
+            Автор: Власов Максим, группа БВТ2355
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</body>
+</html>

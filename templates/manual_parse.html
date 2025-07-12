@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ручной сбор по селекторам</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { padding-top: 40px; background-color: #e9ecef; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .container { max-width: 900px; background-color: #ffffff; padding: 30px; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        h1 { color: #0056b3; font-weight: 600; margin-bottom: 25px; }
+        p.text-muted { font-size: 1.1em; color: #6c757d !important; }
+        .form-group label { font-weight: bold; color: #343a40; }
+        .alert { margin-top: 20px; border-radius: 5px; }
+        .card { margin-top: 20px; border: 1px solid #dee2e6; border-radius: 5px; }
+        .card-header { background-color: #f8f9fa; border-bottom: 1px solid #dee2e6; padding: 10px 15px; cursor: pointer; font-weight: bold; color: #007bff; display: flex; justify-content: space-between; align-items: center; }
+        .card-header:hover { background-color: #e2e6ea; }
+        .card-body { display: none; padding: 15px; border-top: 1px solid #eee; background-color: #ffffff; }
+        .card-body.show { display: block; }
+        .card-body ol { padding-left: 20px; }
+        .card-body ul { padding-left: 20px; }
+        .btn-primary { background-color: #007bff; border-color: #007bff; transition: background-color 0.2s, border-color 0.2s; }
+        .btn-primary:hover { background-color: #0056b3; border-color: #0056b3; }
+        .btn-secondary { background-color: #6c757d; border-color: #6c757d; transition: background-color 0.2s, border-color 0.2s; }
+        .btn-secondary:hover { background-color: #5a6268; border-color: #5a6268; }
+        .footer-author {
+            margin-top: 40px;
+            font-size: 0.9em;
+            color: #6c757d;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="text-center">Ручной сбор данных по CSS-селекторам и XPath</h1>
+        <p class="text-center text-muted">Введите URL, а затем CSS-селекторы или XPath для извлечения конкретных данных.</p>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}" role="alert">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <form method="POST" action="{{ url_for('manual_parse') }}" class="p-4 border rounded shadow-sm bg-light">
+            <div class="form-group">
+                <label for="urlInput">URL веб-сайта:</label>
+                <input type="url" class="form-control" id="urlInput" name="url" placeholder="Например: https://www.example.com" required value="{{ url if url else '' }}">
+                <small class="form-text text-muted">URL сайта, с которого вы хотите собрать данные.</small>
+            </div>
+
+            <hr>
+
+            <div class="form-group">
+                <label for="cssSelectorsInput">CSS-селекторы (через запятую):</label>
+                <input type="text" class="form-control" id="cssSelectorsInput" name="css_selectors" placeholder="Например: .product-title, #price, div.description" value="{{ css_selectors if css_selectors else '' }}">
+                <small class="form-text text-muted">
+                    Введите один или несколько CSS-селекторов, разделенных запятыми. <br>
+                    Примеры: <code>.price</code> (для класса "price"), <code>#product-name</code> (для id "product-name"), <code>div.item h2</code> (для h2 внутри div с классом item).
+                </small>
+                <div class="card mt-2">
+                    <div class="card-header" id="cssInstructionsToggle">
+                        Как найти CSS-селектор? <span>&#9660;</span>
+                    </div>
+                    <div class="card-body" id="cssInstructionsBody">
+                        <p><strong>Использование инструментов разработчика (Chrome/Firefox):</strong></p>
+                        <ol>
+                            <li>Откройте нужную веб-страницу.</li>
+                            <li>Щелкните правой кнопкой мыши по элементу, данные которого вы хотите получить, и выберите "Просмотреть код" или "Исследовать элемент".</li>
+                            <li>В открывшейся панели инструментов разработчика (обычно справа или снизу) вы увидите HTML-код элемента.</li>
+                            <li>Щелкните правой кнопкой мыши по этому HTML-коду.</li>
+                            <li>Выберите "Копировать" -> "Копировать селектор". В большинстве случаев это даст вам рабочий CSS-селектор.</li>
+                            <li>Или вручную найдите класс (<code>class="your-class"</code>), ID (<code>id="your-id"</code>) или тип тега (<code>div</code>, <code>span</code>, <code>a</code>, <code>p</code>) и составьте селектор:
+                                <ul>
+                                    <li>По классу: <code>.your-class</code></li>
+                                    <li>По ID: <code>#your-id</code></li>
+                                    <li>По тегу: <code>div</code></li>
+                                    <li>Комбинированные: <code>div.product-card .price</code> (цена внутри карточки товара)</li>
+                                </ul>
+                            </li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group mt-4">
+                <label for="xpathSelectorsInput">XPath (через запятую):</label>
+                <input type="text" class="form-control" id="xpathSelectorsInput" name="xpath_selectors" placeholder="Например: //h1, //div[@class='product-price'], //a/@href" value="{{ xpath_selectors if xpath_selectors else '' }}">
+                <small class="form-text text-muted">
+                    Введите один или несколько XPath-выражений, разделенных запятыми. <br>
+                    Примеры: <code>//h1</code> (все заголовки h1), <code>//div[@class='price']</code> (div с классом "price"), <code>//a/@href</code> (атрибут href всех ссылок).
+                </small>
+                <div class="card mt-2">
+                    <div class="card-header" id="xpathInstructionsToggle">
+                        Как найти XPath? <span>&#9660;</span>
+                    </div>
+                    <div class="card-body" id="xpathInstructionsBody">
+                        <p><strong>Использование инструментов разработчика (Chrome/Firefox):</strong></p>
+                        <ol>
+                            <li>Откройте нужную веб-страницу.</li>
+                            <li>Щелкните правой кнопкой мыши по элементу, данные которого вы хотите получить, и выберите "Просмотреть код" или "Исследовать элемент".</li>
+                            <li>В открывшейся панели инструментов разработчика щелкните правой кнопкой мыши по HTML-коду элемента.</li>
+                            <li>Выберите "Копировать" -> "Копировать XPath" или "Копировать полный XPath".</li>
+                            <li>Иногда скопированный XPath может быть слишком длинным или хрупким. Рекомендуется использовать более короткие и устойчивые XPath, если это возможно:
+                                <ul>
+                                    <li><code>//tagname</code> (все теги tagname)</li>
+                                    <li><code>//tagname[@attribute='value']</code> (теги с определенным атрибутом)</li>
+                                    <li><code>//div[contains(@class, 'price')]</code> (div, класс которого содержит 'price')</li>
+                                    <li><code>//h1[1]</code> (первый h1)</li>
+                                </ul>
+                            </li>
+                        </ol>
+                        <p class="text-danger">Для работы XPath на сервере требуется установленная библиотека <code>lxml</code>. Если парсер выдает ошибку, попробуйте установить ее через <code>pip install lxml</code>.</p>
+                    </div>
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-block mt-4">Выполнить ручной сбор</button>
+            <a href="{{ url_for('index') }}" class="btn btn-secondary btn-block mt-2">← Вернуться к основному сбору</a>
+        </form>
+
+        <div class="footer-author">
+            Автор: Власов Максим, группа БВТ2355
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            function setupToggle(toggleId, bodyId) {
+                const toggle = document.getElementById(toggleId);
+                const body = document.getElementById(bodyId);
+                if (toggle && body) {
+                    toggle.addEventListener('click', function() {
+                        body.classList.toggle('show');
+                        const span = toggle.querySelector('span');
+                        if (span) {
+                            span.innerHTML = body.classList.contains('show') ? '&#9650;' : '&#9660;';
+                        }
+                    });
+                }
+            }
+            setupToggle('cssInstructionsToggle', 'cssInstructionsBody');
+            setupToggle('xpathInstructionsToggle', 'xpathInstructionsBody');
+        });
+    </script>
+</body>
+</html>
