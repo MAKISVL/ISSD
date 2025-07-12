@@ -3,25 +3,22 @@ version: '3.8'
 services:
   web:
     build: .
-    # Порт 5000 теперь открыт ТОЛЬКО внутри Docker-сети, Nginx будет к нему обращаться
-    # Убираем "ports: - "80:5000"", так как Nginx будет слушать порт 80 хоста
     volumes:
       - .:/app
     environment:
-      SECRET_KEY: "ваш_очень_длинный_и_случайный_секретный_ключ_для_фласка" # ОБЯЗАТЕЛЬНО ЗАМЕНИТЕ НА ВАШ КЛЮЧ
+      SECRET_KEY: "ваш_очень_длинный_и_случайный_секретный_ключ_для_фласка"
       FLASK_ENV: production
     restart: always
 
   nginx:
-    image: nginx:latest # Используем официальный образ Nginx
+    image: nginx:latest
     ports:
-      - "80:80" # Пробрасываем порт 80 хоста на порт 80 контейнера Nginx
-      # - "443:443" # Этот порт понадобится для HTTPS
+      - "80:80"
+      # - "443:443" # for HTTPS
     volumes:
-      # Монтируем наш конфигурационный файл Nginx
       - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
-      # Если у вас есть статичные файлы (CSS, JS, картинки), и вы хотите, чтобы Nginx их отдавал:
-      # - ./static:/app/static:ro # Путь к папке static вашего Flask-приприложения, куда Nginx сможет заглянуть
+      # НОВОЕ: Монтируем robots.txt в стандартное место Nginx для статики
+      - ./robots.txt:/usr/share/nginx/html/robots.txt:ro
     depends_on:
-      - web # Nginx должен запуститься только после того, как запустится сервис 'web'
+      - web
     restart: always
