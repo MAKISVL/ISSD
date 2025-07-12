@@ -1,0 +1,13 @@
+version: '3.8'
+
+services:
+  web:
+    build: .
+    ports:
+      - "80:5000"
+    volumes:
+      - .:/app
+    environment:
+      SECRET_KEY: "ваш_очень_длинный_и_случайный_секретный_ключ_для_фласка"
+      FLASK_ENV: production
+    restart: always
