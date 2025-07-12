@@ -10,5 +10,5 @@ COPY . .
 
 EXPOSE 5000
 
-# ИЗМЕНЕНИЕ ЗДЕСЬ: Используем полный путь к gunicorn
-CMD ["/usr/local/bin/gunicorn", "--bind", "0.0.0.0:5000", "app:app"]
+# ИЗМЕНЕНИЕ ЗДЕСЬ: Запускаем gunicorn как Python-модуль
+CMD ["python", "-m", "gunicorn", "--bind", "0.0.0.0:5000", "app:app"]
